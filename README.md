@@ -10,7 +10,7 @@ Requires Node.js 20+; no packages or build step needed.
 npm start
 ```
 
-Open http://localhost:5173. Use a desktop keyboard and mouse. `npm test` runs the physics and combat regression tests. Any static web server can host this directory; keep the file structure intact. This repository update does not automatically publish a website.
+Open http://localhost:5173. Alternatively, run `python3 -m http.server 8000` from the folder containing `index.html` and open http://localhost:8000. Use a desktop keyboard and mouse. `npm test` runs the physics and combat regression tests. Any static web server can host this directory; keep the file structure intact. This repository update does not automatically publish a website.
 
 ## Controls
 
@@ -21,23 +21,24 @@ Open http://localhost:5173. Use a desktop keyboard and mouse. `npm test` runs th
 | S | Crouch; release to stand when there is room |
 | E | Open a nearby chest |
 | J / Left mouse | Attack in the direction you face |
-| 1 | Fists / sword when acquired |
-| 2 | Bow when acquired |
+| 1 | Fists (always available) |
+| 2 | Sword when acquired |
+| 3 | Bow when acquired |
 | Escape | Pause / resume |
 
 ## Included
 
 - Main menu, controls panel, persistent volume / camera shake / particle settings, pause and victory screens.
-- Three selectable visual themes with slightly different platform placement: Emerald Ruins, Frostbound Heights, Ashen Citadel.
+- Three separately authored maps: Emerald Ruins (saws and spikes), Frostbound Heights (slippery ice, crosswinds, falling icicles and archers), Ashen Citadel (timed fire jets, lava, heavy masonry and sword guards).
 - Fixed-step physics, animated character, coyote time, jump buffering, moving platforms and low passages.
 - Health, spike traps, moving saws, bottom-of-world respawn at the initial spawn, and crown victory condition.
-- Sword, bow, projectiles, attack cooldowns, knockback, temporary damage immunity and four local sparring bots.
+- Sword, bow, projectiles, attack cooldowns, knockback, temporary damage immunity and biome-specific local sparring bots.
 - Chest reset and loss of collected weapons on death. Infinite arrows in this prototype.
 - Procedural Canvas artwork and synthesized sound effects. No external fonts, images, audio assets, services, or dependencies.
 
 ## Scope
 
-This is an offline frontend / gameplay prototype, not networked PvP. Bots patrol their platforms and attack nearby; they are not human players and do not race to the summit. No accounts, matchmaking, backend, database or mobile touch controls yet. The three arenas share the same climb structure and differ in appearance and small layout offsets.
+This is an offline frontend / gameplay prototype, not networked PvP. Bots patrol their platforms and attack nearby; they are not human players and do not race to the summit. No accounts, matchmaking, backend, database or mobile touch controls yet. All three arenas share the initial crouch tutorial, but have independent routes, platform spacing, summit heights, enemies and environmental mechanics. Fire jets telegraph before activating. Player health follows the character; keyboard and inventory buttons use the same weapon selection logic.
 
 ## Code
 
