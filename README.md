@@ -24,6 +24,7 @@ Open http://localhost:5173. Alternatively, run `python3 -m http.server 8000` fro
 | 1 | Fists (always available) |
 | 2 | Sword when acquired |
 | 3 | Bow when acquired |
+| 4 | Pickaxe when acquired |
 | Escape | Pause / resume |
 
 ## Included
@@ -48,3 +49,14 @@ This is an offline frontend / gameplay prototype, not networked PvP. Bots patrol
 - `style.css`: interface design.
 
 The previous Python/Kivy code, Buildozer config, images, font and soundtrack have been removed from the current tree. Earlier versions remain in Git history.
+
+## Version 0.3
+
+- Click each movement key in the Controls dialog to toggle its WASD default to its matching arrow. Each binding is independent, stored locally, and used by both input handling and on-screen / in-world hints.
+- Lobby scenery travels horizontally toward the selected biome with a blurred transition. Rapid selections capture the current frame; reduced-motion preferences skip the travel animation.
+- Underside ice spikes now deal 15 damage (with the normal immunity interval), including on moving platforms.
+- Frost: collect the pickaxe at the former summit, equip slot 4, then jump from alternating walls. Holding toward a wall slows descent. Release and press the configured jump key for each jump. Six more ledges follow the shaft.
+- Ash: stepping onto the sand beyond the former summit collapses it into a sealed three-guard arena. Guards have 60 HP and never respawn until a new run. Defeated guards stay dead if the player dies; the player respawns in the active arena with collected equipment. Killing all three opens the exit staircase and enables the crown.
+- Emerald: two non-solid decorative trees shelter two 30-HP snakes. Snakes telegraph bites for 0.6 seconds and deal 8 damage. Two ordinary bots replace the former four to keep the tutorial forgiving.
+
+Run `npm test` for controls, physics, hazards, complete pickaxe ascent and arena lifecycle checks. Browser visual QA has not been performed in the current execution environment.
