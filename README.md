@@ -69,3 +69,14 @@ Run `npm test` for controls, physics, hazards, complete pickaxe ascent and arena
 - The Controls dialog now also toggles E/H. The saved binding drives chest interaction, HUD hints and the nearby chest prompt.
 
 28 automated tests pass, including emergence, pursuit, multi-hit snake combat, poison expiry/cure and E/H chest interaction. Visual browser verification remains unavailable in this environment.
+
+## Version 0.5
+
+- Lobby travel now animates for 1.6 seconds and is controlled by the in-game travel checkbox (on by default), rather than being silently skipped by an OS reduced-motion preference.
+- The sand arena has three total lives. The third death ends the run; restart explicitly from the defeat screen. A new run restores all three guards and lives.
+- An unlabelled crawl passage midway up Frost has overhead icicles: crouching is safe, standing takes damage.
+- Snake poison now deals 10 HP each second for four seconds; healing still cures it.
+- Pick up a reusable vine near the first snake tree with the configured E/H key. Equip slot 5, aim at the ring above the final Emerald gap and throw with mouse/J. With no mouse aim, J aims toward the visible ring in the facing direction. Move right off the ledge after attaching, pump with movement keys, and press jump to release if desired. The tower vine catches you automatically after the swing. Hold your jump key (W/up) to climb; crouch (S/down) descends. Defeat the roof guard to open the onward ledges. Death resets the carried vine and makes the pickup available again.
+- The stone tower is solid; the gap exceeds the maximum ordinary jump distance. Vine simulation uses pendulum motion and gradual climbing rather than teleportation.
+
+35 regression tests cover the full crossing, aiming, guard gate, crawl damage, three-life defeat and directional lobby travel logic. Actual browser visual QA is still not available here.
