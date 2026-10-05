@@ -60,3 +60,12 @@ The previous Python/Kivy code, Buildozer config, images, font and soundtrack hav
 - Emerald: two non-solid decorative trees shelter two 30-HP snakes. Snakes telegraph bites for 0.6 seconds and deal 8 damage. Two ordinary bots replace the former four to keep the tutorial forgiving.
 
 Run `npm test` for controls, physics, hazards, complete pickaxe ascent and arena lifecycle checks. Browser visual QA has not been performed in the current execution environment.
+
+## Version 0.4
+
+- The right-hand guard island at y=460 before the pickaxe shaft no longer has underside icicles. Other platforms keep their ice hazards.
+- Two tall, twisted hollow trees replace the small ruin trees. Their snakes remain hidden until the player lands on the same island, emerge for one second, then pursue the player without walking off the platform.
+- Snakes now have 75 HP (three sword hits), a telegraphed 8-damage bite, and a non-stacking four-second poison that deals 2 damage per second. Repeated bites refresh the duration. The overhead health display shows the remaining poison time; healing chests and respawn remove it.
+- The Controls dialog now also toggles E/H. The saved binding drives chest interaction, HUD hints and the nearby chest prompt.
+
+28 automated tests pass, including emergence, pursuit, multi-hit snake combat, poison expiry/cure and E/H chest interaction. Visual browser verification remains unavailable in this environment.
