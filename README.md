@@ -80,3 +80,9 @@ Run `npm test` for controls, physics, hazards, complete pickaxe ascent and arena
 - The stone tower is solid; the gap exceeds the maximum ordinary jump distance. Vine simulation uses pendulum motion and gradual climbing rather than teleportation.
 
 35 regression tests cover the full crossing, aiming, guard gate, crawl damage, three-life defeat and directional lobby travel logic. Actual browser visual QA is still not available here.
+
+## Version 0.6
+
+The final seven Emerald terraces are 350px wide and progressively turn left. The launch terrace ends at x=390; the far-right tower starts at x=1320, leaving a 930px ravine. The overhead anchor and vine range are adjusted for the longer swing. No lower island within ordinary jump range can reach the tower vine. The full crossing and climb pass simulation tests.
+
+Lobby travel defaults to off. On first loading v0.6, the old saved default is reset once; subsequent explicit choices persist. 36 regression tests pass.

@@ -1,5 +1,5 @@
-import {LABELS} from './controls.js?v=0.5.0';
-import {THEMES,WORLD} from './engine.js?v=0.5.0';
+import {LABELS} from './controls.js?v=0.6.0';
+import {THEMES,WORLD} from './engine.js?v=0.6.0';
 const poly=(c,pts,color)=>{c.fillStyle=color;c.beginPath();pts.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.closePath();c.fill();};
 export class Renderer {
  constructor(canvas){this.canvas=canvas;this.c=canvas.getContext('2d');this.camera={x:0,y:2100};this.shake=0;this.resize();}

@@ -1,7 +1,7 @@
 // Pendulum swing and fixed tower vines; independent of drawing and DOM input.
 export function throwVine(game,aim){const p=game.player;if(!p.vine||p.rope||p.climbing)return false;
  const cx=p.x+p.w/2,cy=p.y+p.h/2;
- const candidates=game.level.anchors.filter(a=>Math.hypot(a.x-cx,a.y-cy)<600);
+ const candidates=game.level.anchors.filter(a=>Math.hypot(a.x-cx,a.y-cy)<950);
  const anchor=candidates.find(a=>{if(!aim)return Math.sign(a.x-cx)===p.dir;const ux=aim.x-cx,uy=aim.y-cy,ax=a.x-cx,ay=a.y-cy;return (ux*ax+uy*ay)/(Math.hypot(ux,uy)*Math.hypot(ax,ay)||1)>.96;});
  if(!anchor){game.event('chest','Наведи курсор на кольцо над обрывом.');return false;}
  p.rope={waiting:p.ground,anchor,length:Math.hypot(cx-anchor.x,cy-anchor.y),angle:Math.atan2(cx-anchor.x,cy-anchor.y),omega:p.vx/450};game.event('chest','Лиана зацепилась! Раскачивайся влево и вправо.');return true;}

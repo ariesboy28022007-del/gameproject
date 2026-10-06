@@ -1,4 +1,4 @@
-import {throwVine,vineMovement} from './vines.js?v=0.5.0';
+import {throwVine,vineMovement} from './vines.js?v=0.6.0';
 export const WORLD={width:1500,height:3050,startY:2760,goalY:360};
 export const THEMES=[{name:'Изумрудные руины',sky:['#122c3b','#648d88','#e5d9ab'],mountains:['#467579','#30575e','#203e45'],stone:'#334d4e',edge:'#9bbc77',grass:'#a6c782',accent:'#d9ed96',fog:'#98bdac'}, {name:'Ледяной предел',sky:['#152344','#758caa','#ccdce2'],mountains:['#6f8da8','#405f82','#29425e'],stone:'#405d76',edge:'#bbe5ea',grass:'#d7f1ef',accent:'#c7f7fa',fog:'#afc8e1'}, {name:'Пепельная цитадель',sky:['#291d36','#925960','#dfab81'],mountains:['#8c646e','#684a60','#382f43'],stone:'#51404c',edge:'#c77d69',grass:'#da9a73',accent:'#ffd399',fog:'#cb9a92'}];
 export const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
@@ -10,6 +10,10 @@ export function createLevel(theme=0){
  [[740,2650,300],[1050,2540,260],[810,2410,280],[510,2310,290],[180,2190,280],[430,2050,250],[730,1920,290],[1050,1800,280],[800,1660,280],[480,1550,280],[150,1420,270],[400,1280,260],[700,1160,280],[1020,1030,280],[780,890,270],[470,780,290],[150,650,280],[450,520,280],[760,380,350]]
  ];
  routes[theme].forEach(([x,y,w],i)=>platforms.push({x,y,w,h:theme===2?46:32,baseX:x,moving:(theme===0?[7,14]:theme===1?[5,12]:[6,11]).includes(i),ice:theme===1&&i%3!==0}));
+ if(theme===0){
+ // Broad upper terraces turn left, leaving the entire right side empty below the tower.
+ [520,420,320,220,120,60,40].forEach((x,i)=>Object.assign(platforms[15+i],{x,baseX:x,w:350,moving:false}));
+ }
  const chest=(index,weapon)=>{const p=platforms[index];return {x:p.x+p.w*.65,y:p.y-24,weapon,open:false};};
  const chests=[{x:555,y:2736,weapon:'sword',open:false},chest(theme===1?4:5,'bow'),chest(12,'heal')];
  const spikes=(theme===0?[7,13,19]:theme===1?[6,10,16]:[4,9,16]).map(i=>({x:platforms[i].x+platforms[i].w-66,y:platforms[i].y-18,w:48,h:18}));
@@ -23,7 +27,7 @@ export function createLevel(theme=0){
  if(theme===0){for(const home of [5,14]){const platform=platforms[home];trees.push({x:platform.x+75,y:platform.y,home});bots.push({...actor(platform.x+75,platform.y-22),w:42,h:22,hp:75,maxHp:75,dormant:true,emerging:0,kind:'snake',home,id:50+home,role:'snake',color:'#9acb79',permanent:true,windup:0,respawn:0});}}
  if(theme===0){
  vinePickup={x:platforms[5].x+45,y:platforms[5].y-22,taken:false};
- anchors.push({x:1110,y:-60});
+ anchors.push({x:850,y:-220});
  const tower=platforms.push({x:1320,y:120,w:170,h:550,tower:true})-1;
  towerVines.push({x:1307,top:120,bottom:620,exitX:1325});
  bots.push({...actor(1400,72),id:250,home:tower,role:'guard',brain:0,color:'#a7b897',permanent:true,towerGuard:true});

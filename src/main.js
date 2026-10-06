@@ -1,10 +1,12 @@
-import {normalizeBindings,toggleBinding,movementInput,LABELS} from './controls.js?v=0.5.0';
-import {Game,THEMES,WORLD} from './engine.js?v=0.5.0';
-import {Renderer} from './render.js?v=0.5.0';
+import {normalizeBindings,toggleBinding,movementInput,LABELS} from './controls.js?v=0.6.0';
+import {Game,THEMES,WORLD} from './engine.js?v=0.6.0';
+import {Renderer} from './render.js?v=0.6.0';
 const $=id=>document.getElementById(id),canvas=$('scene'),renderer=new Renderer(canvas);
 let pointer=null;
 let selected=0,state='menu',game,keys={},accumulator=0,last=0,toastUntil=0,audio;
-let settings={volume:35,shake:true,particles:true,travel:true};try{settings={...settings,...JSON.parse(localStorage.getItem('koth-settings')||'{}')};}catch{}
+let settings={volume:35,shake:true,particles:true,travel:false};try{settings={...settings,...JSON.parse(localStorage.getItem('koth-settings')||'{}')};}catch{}
+// Reset the old default once, while preserving later explicit choices.
+if(settings.travelDefaultRevision!==6){settings.travel=false;settings.travelDefaultRevision=6;try{localStorage.setItem('koth-settings',JSON.stringify(settings));}catch{}}
 settings.bindings=normalizeBindings(settings.bindings);
 $('volume').value=settings.volume;$('shake').checked=settings.shake;$('particles').checked=settings.particles;$('travel').checked=settings.travel;
 function save(){settings={...settings,volume:+$('volume').value,shake:$('shake').checked,particles:$('particles').checked,travel:$('travel').checked};try{localStorage.setItem('koth-settings',JSON.stringify(settings));}catch{}}
