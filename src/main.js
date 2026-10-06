@@ -1,6 +1,6 @@
 import {normalizeBindings,toggleBinding,movementInput,LABELS} from './controls.js?v=0.6.0';
 import {Game,THEMES,WORLD} from './engine.js?v=0.6.0';
-import {Renderer} from './render.js?v=0.6.0';
+import {Renderer} from './render.js?v=0.8.0';
 const $=id=>document.getElementById(id),canvas=$('scene'),renderer=new Renderer(canvas);
 let pointer=null;
 let selected=0,state='menu',game,keys={},accumulator=0,last=0,toastUntil=0,audio;
