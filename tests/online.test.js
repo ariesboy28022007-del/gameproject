@@ -6,7 +6,7 @@ import {createServer} from '../server.mjs';
 const members=Array.from({length:10},(_,i)=>({id:'p'+i,name:'Player '+i}));
 const game=()=>new Arena(members.slice(0,2),()=>.3);
 function run(g,n=1){for(let i=0;i<n;i++)g.step();}
-test('arena fits ten starts with fists and first loot above spawn',()=>{const g=new Arena(members);assert.equal(g.players.length,10);assert.ok(g.players.every(p=>p.weapon===1&&!p.sword&&!p.bow));const first=g.chests.filter(c=>c.y>FLOOR-400);assert.equal(first.length,6);assert.ok(first.every(c=>g.platforms[c.platform].row===2&&c.loot!=='heal'));});
+test('arena fits ten starts with fists and first loot above spawn',()=>{const g=new Arena(members);assert.equal(g.players.length,10);assert.ok(g.players.every(p=>p.weapon===1&&!p.sword&&!p.bow));assert.equal(g.chests.length,0);run(g,181);const first=g.chests.filter(c=>c.y>FLOOR-400);assert.equal(first.length,6);assert.ok(first.every(c=>g.platforms[c.platform].row===2&&c.loot!=='heal'));});
 test('parkour has small staggered stones, two choke points and a broken summit',()=>{
  const ps=createPlatforms();assert.ok(ps.filter(p=>p.id).every(p=>p.w<=120));
  assert.ok(new Set(ps.filter(p=>p.row===1).map(p=>p.y)).size>1);
@@ -19,7 +19,7 @@ test('lava waits, rises, then stops and destroys summit blocks',()=>{const g=gam
 test('simultaneous deaths draw; sole survivor wins below summit',()=>{let g=game();g.players.forEach(p=>p.hp=0);run(g);assert.equal(g.phase,'finished');assert.equal(g.winner,null);g=game();g.players[1].hp=0;run(g);assert.equal(g.winner,'p0');assert.equal(g.players[0].y,FLOOR-48);});
 test('simultaneous lethal melee resolves both attacks before outcome',()=>{const g=game();Object.assign(g.players[0],{x:100,hp:10,face:1});Object.assign(g.players[1],{x:135,hp:10,face:-1});g.input('p0',{attack:true});g.input('p1',{attack:true});run(g);assert.equal(g.phase,'finished');assert.equal(g.winner,null);});
 test('hold bow charges, release fires and spends limited ammunition',()=>{const g=game();Object.assign(g.players[0],{bow:true,weapon:3,ammo:2});g.input('p0',{attack:true,aim:-.5});run(g,40);assert.equal(g.arrows.length,0);assert.ok(g.players[0].charge>.6);g.input('p0',{attack:false,aim:-.5});run(g);assert.equal(g.arrows.length,1);assert.equal(g.players[0].ammo,1);assert.ok(g.arrows[0].vy<0);assert.equal(g.players[0].charge,0);});
-test('chest interaction grants weapon, consumes chest, dead input cannot revive',()=>{const g=game(),c=g.chests[0];g.players[0].x=c.x;g.players[0].y=c.y-20;g.input('p0',{use:true});run(g);assert.ok(g.players[0].sword);assert.ok(!g.chests.includes(c));g.players[0].alive=false;g.input('p0',{hp:100});assert.equal(g.players[0].alive,false);});
+test('chest interaction grants weapon, consumes chest, dead input cannot revive',()=>{const g=game();run(g,181);const c=g.chests[0];g.players[0].x=c.x;g.players[0].y=c.y-20;g.input('p0',{use:true});run(g);assert.ok(g.players[0].sword);assert.ok(!g.chests.includes(c));g.players[0].alive=false;g.input('p0',{hp:100});assert.equal(g.players[0].alive,false);});
 test('short invulnerability prevents repeated stun hits',()=>{const g=game(),p=g.players[0];g.hit(p,10,100,-100);g.hit(p,10,100,-100);assert.equal(p.hp,90);assert.equal(p.vx,100);});
 test('rooms need every player ready; joining resets ready; max ten',()=>{const r=new Rooms(),a=r.join({create:true,name:'A'});r.action(a.token,{type:'ready',ready:true});r.tick();assert.equal(r.sessions.get(a.token).room.countdown,null);const b=r.join({code:a.code,name:'B'});assert.equal(r.sessions.get(a.token).member.ready,false);r.action(a.token,{type:'ready',ready:true});r.action(b.token,{type:'ready',ready:true});for(let i=0;i<182;i++)r.tick();const room=r.sessions.get(a.token).room;assert.equal(room.game.phase,'running');const c=r.join({code:a.code,name:'C'});assert.ok(!room.game.players.some(p=>p.id===c.id));for(let i=0;i<7;i++)r.join({code:a.code});assert.throws(()=>r.join({code:a.code}),/10/);r.leave(a.token);r.tick();assert.equal(room.game.winner,b.id);});
 test('replay includes spectators and disconnected sessions expire',()=>{const r=new Rooms(),a=r.join({create:true}),b=r.join({code:a.code});const room=r.sessions.get(a.token).room;room.game=new Arena(room.members);const c=r.join({code:a.code});room.game.players[0].hp=0;r.tick();for(const s of [a,b,c])r.action(s.token,{type:'ready',ready:true});for(let i=0;i<182;i++)r.tick();assert.equal(room.game.players.length,3);assert.ok(room.game.players.every(p=>p.alive&&p.hp===100&&!p.sword));r.tick(Date.now()+16000);assert.equal(r.sessions.size,0);assert.equal(r.rooms.size,0);});
@@ -66,4 +66,14 @@ test('two fist hits can knock a stationary opponent off a small island',()=>{
  const g=game(),p=g.players[0];g.platforms=[{id:0,x:800,y:2000,w:120,h:22}];g.chests=[];
  Object.assign(p,{x:846,y:1952});g.hit(p,10,340,-270);run(g,24);g.hit(p,10,340,-270);run(g,30);
  assert.ok(p.x>920||p.y+p.h>2000);assert.ok(p.hp>0);
+});
+
+test('loot spawns during play near survivors, expires, and never uses flooded or broken platforms',()=>{
+ const g=game();assert.equal(g.chests.length,0);run(g,179);assert.equal(g.chests.length,0);run(g,2);assert.ok(g.chests.length>=2);
+ const firstIds=g.chests.map(c=>c.id);assert.ok(g.chests.every(c=>c.born>=3&&c.expires-c.born===22));
+ g.players.forEach(p=>Object.assign(p,{x:680,y:TOP-48}));g.time=30;g.nextChest=30;g.lava=TOP+65;run(g);
+ assert.ok(g.chests.every(c=>!firstIds.includes(c.id)));
+ assert.ok(g.chests.length>0);assert.ok(g.chests.every(c=>g.platforms[c.platform].top&&!g.platforms[c.platform].crack&&c.y+c.h<g.lava));
+ assert.ok(g.nextChest>=g.time+5&&g.nextChest<=g.time+8);
+ const c=g.chests[0];g.platforms[c.platform].gone=true;g.nextChest=100;run(g);assert.ok(!g.chests.includes(c));
 });

@@ -1,5 +1,5 @@
-import {Renderer} from '../render.js?v=0.8.0';
-import {normalizeBindings,movementInput,LABELS} from '../controls.js?v=0.8.0';
+import {Renderer} from '../render.js?v=0.9.0';
+import {normalizeBindings,movementInput,LABELS} from '../controls.js?v=0.9.0';
 const $=id=>document.getElementById(id),canvas=$('arena'),ctx=canvas.getContext('2d');
 let session=null,stream=null,snapshot=null,keys={},selected=1,mouse=null,bindings=normalizeBindings(),pending=false,watch=0,last=0,scale=1,camera={x:0,y:3000},width=innerWidth,height=innerHeight,drawn=new Map(),connected=false,lastMessage=0,roundTime=-1;
 try{bindings=normalizeBindings(JSON.parse(localStorage.getItem('koth-settings')||'{}').bindings);$('name').value=localStorage.getItem('koth-name')||'';}catch{}
@@ -11,7 +11,7 @@ async function join(create){$('join').disabled=$('create').disabled=true;try{ses
 $('create').onclick=()=>join(true);$('join').onclick=()=>join(false);
 $('ready').onclick=async()=>{try{await post('action',{type:'ready',ready:!snapshot.members.find(p=>p.id===session.id)?.ready});}catch(e){error(e.message);}};
 $('copy').onclick=async()=>{const url=new URL(location.href);url.searchParams.set('room',session.code);try{await navigator.clipboard.writeText(url.href);$('copy').textContent='Приглашение скопировано';}catch{prompt('Скопируй ссылку. Друзьям нужен сетевой адрес вместо localhost:',url.href);}};
-function reset(){stream?.close();stream=null;session=null;snapshot=null;keys={};drawn.clear();$('entry').hidden=false;$('lobby').hidden=$('match').hidden=$('leave').hidden=true;$('connection').textContent='СЕТЕВАЯ АРЕНА · V.08';}
+function reset(){stream?.close();stream=null;session=null;snapshot=null;keys={};drawn.clear();$('entry').hidden=false;$('lobby').hidden=$('match').hidden=$('leave').hidden=true;$('connection').textContent='СЕТЕВАЯ АРЕНА · V.09';}
 $('leave').onclick=async()=>{try{await post('action',{type:'leave'});}catch{}reset();};
 function updateUI(){const s=snapshot,g=s.game,running=g?.phase==='running';if(running&&g.time<roundTime){drawn.clear();selected=1;keys={};}roundTime=g?.time??-1;$('lobby').hidden=running;$('match').hidden=!running;$('room-code').textContent='Комната '+s.code;
  if(!running){const winner=g?.players.find(p=>p.id===g.winner);$('lobby-message').textContent=s.countdown!==null?`Начинаем через ${Math.ceil(s.countdown)}…`:g?.phase==='finished'?`${winner?'Победил '+winner.name+'!':'Ничья — никто не выжил.'} Для реванша все должны нажать «Готов».`:'Нужно от 2 до 10 игроков. Все должны нажать «Готов».';$('members').replaceChildren(...s.members.map(p=>{const li=document.createElement('li');li.textContent=(p.ready?'✓ ':'○ ')+p.name+(p.id===session.id?' (ты)':'');li.className=p.ready?'is-ready':'';return li;}));$('ready').textContent=s.members.find(p=>p.id===session.id)?.ready?'Отменить готовность':'Готов';return;}
@@ -38,9 +38,14 @@ function render(now){const dt=Math.min(.05,(now-last)/1000||.016);last=now;
   if(target){const d=drawn.get(target.id);camera.x+= (Math.max(0,Math.min(2400-width/scale,d.x-width/scale/2))-camera.x)*Math.min(1,dt*8);camera.y+=(Math.max(20,Math.min(4100-height/scale,d.y-height/scale*.55))-camera.y)*Math.min(1,dt*8);}
   ctx.save();ctx.scale(scale,scale);ctx.translate(-camera.x,-camera.y);
   for(const b of g.platforms){if(b.gone){if(b.drop<200)rect(b.x,b.y+b.drop,b.w,b.h,'#8a7961');continue;}if(b.y<camera.y-100||b.y>camera.y+height/scale+100)continue;const wobble=b.crack?Math.sin(now*.07)*3:0;rect(b.x+wobble,b.y,b.w,b.h,b.crack?'#b68655':b.top?'#657266':'#3d5c51');rect(b.x+wobble,b.y,b.w,6,b.crack?'#ffbd6e':'#9bb975');for(let x=b.x+40;x<b.x+b.w;x+=80)rect(x,b.y+9,2,b.h-9,'#243e38');if(b.crack){ctx.strokeStyle='#382c29';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x+b.w*.5,b.y);ctx.lineTo(b.x+b.w*.35,b.y+20);ctx.lineTo(b.x+b.w*.65,b.y+35);ctx.lineTo(b.x+b.w*.5,b.y+b.h);ctx.stroke();}}
-  for(const c of g.chests){rect(c.x,c.y,c.w,c.h,'#b88649');rect(c.x,c.y,c.w,5,'#ebca7f');rect(c.x+13,c.y+8,7,12,'#ffe19b');if(me?.alive&&Math.abs(me.x-c.x)<70&&Math.abs(me.y-c.y)<70)text(LABELS[bindings.use],c.x+16,c.y-12,18);}
+  for(const c of g.chests){
+   const age=g.time-c.born,remaining=c.expires-g.time;
+   ctx.save();ctx.globalAlpha=remaining<3?.55+.45*Math.sin(now*.02)**2:1;
+   if(age<.65){ctx.strokeStyle='#d9f9a2';ctx.lineWidth=3;ctx.globalAlpha=Math.max(0,1-age/.65);ctx.beginPath();ctx.arc(c.x+16,c.y+14,18+age*55,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
+   ctx.shadowColor='#cff5a0';ctx.shadowBlur=age<.65?18:5;
+   rect(c.x,c.y,c.w,c.h,'#b88649');rect(c.x,c.y,c.w,5,'#ebca7f');rect(c.x+13,c.y+8,7,12,'#ffe19b');if(me?.alive&&Math.abs(me.x-c.x)<70&&Math.abs(me.y-c.y)<70)text(LABELS[bindings.use],c.x+16,c.y-12,18);ctx.restore();}
   for(const p of g.players){if(!p.alive)continue;const d=drawn.get(p.id);ctx.globalAlpha=p.immune>0?.65:1;
-   characterRenderer.character({...p,x:d.x,y:d.y,dir:p.face,inv:p.immune,walk:now*.014,swing:p.cooldown>.15?1:0,weapon:['','fists','sword','bow'][p.weapon],color:colors[p.color%10],elf:true},now/1000);
+   characterRenderer.character({...p,x:d.x,y:d.y,dir:p.face,inv:p.immune,walk:now*.014,swing:p.cooldown>.15?1:0,weapon:['','fists','sword','bow'][p.weapon],color:colors[p.color%10]},now/1000);
    ctx.globalAlpha=1;rect(d.x-11,d.y-30,50,5,'#122122');rect(d.x-11,d.y-30,50*Math.max(0,p.hp)/100,5,'#bbeb84');text(p.name+(p.id===session?.id?' ◂':''),d.x+14,d.y-40,13,colors[p.color%10]);
   }
   ctx.strokeStyle='#f8e6b0';ctx.lineWidth=3;for(const a of g.arrows){const angle=Math.atan2(a.vy,a.vx);ctx.beginPath();ctx.moveTo(a.x-Math.cos(angle)*18,a.y-Math.sin(angle)*18);ctx.lineTo(a.x,a.y);ctx.stroke();}

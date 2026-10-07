@@ -47,13 +47,19 @@ const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export class Arena{
  constructor(members,random=Math.random){
-  this.random=random;this.time=0;this.phase='running';this.winner=null;this.lava=FLOOR+180;this.collapse=0;this.nextChest=17;this.serial=0;
+  this.random=random;this.time=0;this.phase='running';this.winner=null;this.lava=FLOOR+180;this.collapse=0;this.nextChest=3;this.chestWave=0;this.serial=0;
   this.platforms=createPlatforms();this.chests=[];this.arrows=[];this.players=members.map((m,i)=>({id:m.id,name:m.name,color:i,x:100+i*(WIDTH-230)/Math.max(1,members.length-1),y:FLOOR-48,w:28,h:48,vx:0,vy:0,hp:100,alive:true,ground:true,face:1,weapon:1,sword:false,bow:false,ammo:0,cooldown:0,immune:0,charge:0,input:{},previous:{},lastInput:0}));
-  // First weapons after two jumps, one for each starting approach.
-  for(const p of this.platforms.filter(p=>p.row===2))this.addChest(p,random()<.5?'sword':'bow');
-  for(let row=5;row<=35;row+=3){const candidates=this.platforms.filter(p=>p.row===row);for(let j=0,n=Math.min(2,candidates.length);j<n;j++)this.addChest(candidates.splice(Math.floor(random()*candidates.length),1)[0]);}
  }
- addChest(p,loot){this.chests.push({id:++this.serial,x:p.x+p.w/2-16,y:p.y-28,w:32,h:28,platform:p.id,loot:loot||['sword','bow','heal'][Math.floor(this.random()*3)]});}
+ addChest(p,loot){this.chests.push({id:++this.serial,x:p.x+p.w/2-16,y:p.y-28,w:32,h:28,platform:p.id,born:this.time,expires:this.time+22,loot:loot||['sword','bow','heal'][Math.floor(this.random()*3)]});}
+ spawnChests(){
+  const alive=this.players.filter(p=>p.alive),first=this.chestWave++===0;
+  // Loot follows surviving players, not the lava far below them.
+  const candidates=this.platforms.filter(p=>p.id!==0&&!p.gone&&!p.crack&&p.y<this.lava-45&&!this.chests.some(c=>c.platform===p.id)&&
+   (first?p.row===2:alive.some(a=>p.y>=a.y-340&&p.y<=a.y+a.h+100)));
+  const count=Math.min(candidates.length,12-this.chests.length,Math.max(2,Math.ceil(alive.length*(first?.6:.35))));
+  for(let i=0;i<count;i++){const p=candidates.splice(Math.floor(this.random()*candidates.length),1)[0];this.addChest(p,first?(this.random()<.5?'sword':'bow'):undefined);}
+  this.nextChest=this.time+5+this.random()*3;
+ }
  input(id,data){const p=this.players.find(p=>p.id===id);if(!p||!p.alive)return;const num=v=>typeof v==='number'&&Number.isFinite(v);p.input={left:data.left===true,right:data.right===true,jump:data.jump===true,crouch:data.crouch===true,use:data.use===true,attack:data.attack===true,slot:[1,2,3].includes(data.slot)?data.slot:0,aim:num(data.aim)?clamp(data.aim,-Math.PI,Math.PI):null};p.lastInput=this.time;}
  disconnect(id){const p=this.players.find(p=>p.id===id);if(p){p.hp=0;p.alive=false;}}
  hit(p,damage,vx,vy){if(!p.alive||p.immune>0)return;p.hp-=damage;p.vx+=vx;p.vy=Math.min(p.vy,vy);p.ground=false;p.immune=.38;}
@@ -63,8 +69,8 @@ export class Arena{
   if(this.lava<=TOP+65){this.collapse-=dt;if(this.collapse<=0){const available=this.platforms.filter(p=>p.top&&!p.gone&&!p.crack);if(available.length)available[Math.floor(this.random()*available.length)].crack=1.15;this.collapse=1.5;}}
   for(const b of this.platforms)if(b.crack>0){b.crack-=dt;if(b.crack<=0){b.gone=true;b.drop=0;b.dropV=0;}}
   for(const b of this.platforms)if(b.gone&&b.drop<200){b.dropV+=1000*dt;b.drop+=b.dropV*dt;}
-  this.chests=this.chests.filter(c=>c.y+c.h<this.lava&&!this.platforms[c.platform].gone);
-  if(this.time>=this.nextChest){this.nextChest=this.time+14;const candidates=this.platforms.filter(p=>!p.gone&&!p.crack&&p.y<this.lava-100&&p.y>this.lava-800&&!this.chests.some(c=>c.platform===p.id));if(candidates.length)this.addChest(candidates[Math.floor(this.random()*candidates.length)]);}
+  this.chests=this.chests.filter(c=>c.y+c.h<this.lava&&!this.platforms[c.platform].gone&&c.expires>this.time);
+  if(this.time>=this.nextChest)this.spawnChests();
   const attacks=[];
   for(const p of this.players){if(!p.alive)continue;const k=this.time-p.lastInput>1?{}:p.input,prev=p.previous;
    p.cooldown=Math.max(0,p.cooldown-dt);p.immune=Math.max(0,p.immune-dt);
