@@ -47,10 +47,11 @@ const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export class Arena{
  constructor(members,random=Math.random){
-  this.random=random;this.time=0;this.phase='running';this.winner=null;this.lava=FLOOR+180;this.collapse=0;this.nextChest=3;this.chestWave=0;this.serial=0;
+  this.random=random;this.time=0;this.phase='running';this.winner=null;this.lava=FLOOR+180;this.collapse=0;this.nextChest=3;this.chestWave=0;this.serial=0;this.events=[];this.eventSerial=0;
   this.platforms=createPlatforms();this.chests=[];this.arrows=[];this.players=members.map((m,i)=>({id:m.id,name:m.name,color:i,x:100+i*(WIDTH-230)/Math.max(1,members.length-1),y:FLOOR-48,w:28,h:48,vx:0,vy:0,hp:100,alive:true,ground:true,face:1,weapon:1,sword:false,bow:false,ammo:0,cooldown:0,immune:0,charge:0,input:{},previous:{},lastInput:0}));
  }
- addChest(p,loot){this.chests.push({id:++this.serial,x:p.x+p.w/2-16,y:p.y-28,w:32,h:28,platform:p.id,born:this.time,expires:this.time+22,loot:loot||['sword','bow','heal'][Math.floor(this.random()*3)]});}
+ emit(type,p){this.events.push({id:++this.eventSerial,type,x:p.x,y:p.y,time:this.time});this.events=this.events.slice(-96);}
+ addChest(p,loot){this.emit('spawn',p);this.chests.push({id:++this.serial,x:p.x+p.w/2-16,y:p.y-28,w:32,h:28,platform:p.id,born:this.time,expires:this.time+22,loot:loot||['sword','bow','heal'][Math.floor(this.random()*3)]});}
  spawnChests(){
   const alive=this.players.filter(p=>p.alive),first=this.chestWave++===0;
   // Loot follows surviving players, not the lava far below them.
@@ -62,8 +63,8 @@ export class Arena{
  }
  input(id,data){const p=this.players.find(p=>p.id===id);if(!p||!p.alive)return;const num=v=>typeof v==='number'&&Number.isFinite(v);p.input={left:data.left===true,right:data.right===true,jump:data.jump===true,crouch:data.crouch===true,use:data.use===true,attack:data.attack===true,slot:[1,2,3].includes(data.slot)?data.slot:0,aim:num(data.aim)?clamp(data.aim,-Math.PI,Math.PI):null};p.lastInput=this.time;}
  disconnect(id){const p=this.players.find(p=>p.id===id);if(p){p.hp=0;p.alive=false;}}
- hit(p,damage,vx,vy){if(!p.alive||p.immune>0)return;p.hp-=damage;p.vx+=vx;p.vy=Math.min(p.vy,vy);p.ground=false;p.immune=.38;}
- step(dt=STEP){if(this.phase!=='running')return;this.time+=dt;
+ hit(p,damage,vx,vy){if(!p.alive||p.immune>0)return;this.emit('hit',p);p.hp-=damage;p.vx+=vx;p.vy=Math.min(p.vy,vy);p.ground=false;p.immune=.38;}
+ step(dt=STEP){if(this.phase!=='running')return;this.time+=dt;this.events=this.events.filter(e=>this.time-e.time<2);
   // 12 seconds to find footing, then an accelerating ascent of about three minutes.
   if(this.time>12)this.lava=Math.max(TOP+65,this.lava-(13+Math.min(15,(this.time-12)*.08))*dt);
   if(this.lava<=TOP+65){this.collapse-=dt;if(this.collapse<=0){const available=this.platforms.filter(p=>p.top&&!p.gone&&!p.crack);if(available.length)available[Math.floor(this.random()*available.length)].crack=1.15;this.collapse=1.5;}}
@@ -79,11 +80,11 @@ export class Arena{
    if(wanted<=p.h||!this.platforms.some(b=>!b.gone&&overlap({...p,y:oldBottom-wanted,h:wanted},b))){p.h=wanted;p.y=oldBottom-p.h;}
    const dir=Number(!!k.right)-Number(!!k.left);if(dir)p.face=dir;
    p.vx+=(dir*(k.crouch?145:285)-p.vx)*Math.min(1,dt*(p.ground?12:3));
-   if(k.jump&&!prev.jump&&p.ground){p.vy=-650;p.ground=false;}
+   if(k.jump&&!prev.jump&&p.ground){p.vy=-650;p.ground=false;this.emit('jump',p);}
    p.vy+=1550*dt;movePlayer(p,this.platforms,dt);
-   if(k.use&&!prev.use){const c=this.chests.find(c=>Math.abs(c.x+16-p.x-14)<70&&Math.abs(c.y-p.y)<65);if(c){if(c.loot==='sword')p.sword=true;if(c.loot==='bow'){p.bow=true;p.ammo+=8;}if(c.loot==='heal')p.hp=Math.min(100,p.hp+35);this.chests.splice(this.chests.indexOf(c),1);}}
-   if(p.weapon===3){if(k.attack&&p.ammo>0)p.charge=Math.min(1.2,p.charge+dt);if(!k.attack&&prev.attack&&p.charge>0&&p.cooldown===0&&p.ammo>0){const power=p.charge/1.2,angle=k.aim??(p.face===1?0:Math.PI);this.arrows.push({id:++this.serial,owner:p.id,x:p.x+14,y:p.y+p.h*.4,vx:Math.cos(angle)*(450+550*power),vy:Math.sin(angle)*(450+550*power),life:3,damage:12+14*power});p.ammo--;p.cooldown=.35;p.charge=0;}if(!k.attack)p.charge=0;
-   }else{p.charge=0;if(k.attack&&!prev.attack&&p.cooldown===0){p.cooldown=p.weapon===2?.48:.38;attacks.push({owner:p.id,x:p.face===1?p.x+p.w:p.x-(p.weapon===2?68:44),y:p.y,w:p.weapon===2?68:44,h:p.h,damage:p.weapon===2?24:10,force:p.face*(p.weapon===2?470:340)});}}
+   if(k.use&&!prev.use){const c=this.chests.find(c=>Math.abs(c.x+16-p.x-14)<70&&Math.abs(c.y-p.y)<65);if(c){this.emit('chest',p);if(c.loot==='sword')p.sword=true;if(c.loot==='bow'){p.bow=true;p.ammo+=8;}if(c.loot==='heal')p.hp=Math.min(100,p.hp+35);this.chests.splice(this.chests.indexOf(c),1);}}
+   if(p.weapon===3){if(k.attack&&p.ammo>0)p.charge=Math.min(1.2,p.charge+dt);if(!k.attack&&prev.attack&&p.charge>0&&p.cooldown===0&&p.ammo>0){const power=p.charge/1.2,angle=k.aim??(p.face===1?0:Math.PI);this.arrows.push({id:++this.serial,owner:p.id,x:p.x+14,y:p.y+p.h*.4,vx:Math.cos(angle)*(450+550*power),vy:Math.sin(angle)*(450+550*power),life:3,damage:12+14*power});this.emit('bow',p);p.ammo--;p.cooldown=.35;p.charge=0;}if(!k.attack)p.charge=0;
+   }else{p.charge=0;if(k.attack&&!prev.attack&&p.cooldown===0){this.emit('attack',p);p.cooldown=p.weapon===2?.48:.38;attacks.push({owner:p.id,x:p.face===1?p.x+p.w:p.x-(p.weapon===2?68:44),y:p.y,w:p.weapon===2?68:44,h:p.h,damage:p.weapon===2?24:10,force:p.face*(p.weapon===2?470:340)});}}
    p.previous={...k};
   }
   // Resolve all attacks before deciding who survived this tick.
@@ -91,10 +92,10 @@ export class Arena{
   for(const a of this.arrows){const oldX=a.x,oldY=a.y;a.vy+=310*dt;a.x+=a.vx*dt;a.y+=a.vy*dt;a.life-=dt;const swept={x:Math.min(oldX,a.x)-4,y:Math.min(oldY,a.y)-4,w:Math.abs(a.x-oldX)+8,h:Math.abs(a.y-oldY)+8};for(const p of this.players)if(p.alive&&p.id!==a.owner&&overlap(swept,p)){this.hit(p,a.damage,Math.sign(a.vx)*360,-180);a.life=0;break;}if(this.platforms.some(b=>!b.gone&&overlap(swept,b)))a.life=0;}
   this.arrows=this.arrows.filter(a=>a.life>0);
   for(const p of this.players)if(p.alive&&(p.hp<=0||p.y+p.h>=this.lava||p.y>FLOOR+300)){
-   p.alive=false;p.hp=0;p.charge=0;const ground=this.platforms.find(b=>!b.gone&&Math.abs(b.y-p.y-p.h)<5&&p.x+p.w>b.x&&p.x<b.x+b.w&&b.y<this.lava);
+   this.emit('death',p);p.alive=false;p.hp=0;p.charge=0;const ground=this.platforms.find(b=>!b.gone&&Math.abs(b.y-p.y-p.h)<5&&p.x+p.w>b.x&&p.x<b.x+b.w&&b.y<this.lava);
    if(ground){if(p.sword)this.addChest(ground,'sword');if(p.bow)this.addChest(ground,'bow');}
   }
-  const alive=this.players.filter(p=>p.alive);if(alive.length<=1){this.phase='finished';this.winner=alive[0]?.id??null;}
+  const alive=this.players.filter(p=>p.alive);if(alive.length<=1){this.phase='finished';this.winner=alive[0]?.id??null;if(alive[0])this.emit('win',alive[0]);}
  }
- snapshot(){return {time:this.time,phase:this.phase,winner:this.winner,lava:this.lava,platforms:this.platforms,chests:this.chests,arrows:this.arrows,players:this.players.map(({input,previous,lastInput,...p})=>p)};}
+ snapshot(){return {events:this.events,time:this.time,phase:this.phase,winner:this.winner,lava:this.lava,platforms:this.platforms,chests:this.chests,arrows:this.arrows,players:this.players.map(({input,previous,lastInput,...p})=>p)};}
 }
